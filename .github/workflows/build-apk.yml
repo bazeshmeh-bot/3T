@@ -27,8 +27,7 @@ jobs:
           channel: 'stable'
 
       - name: ساخت پوشه‌ی پلتفرم اندروید (android/) در صورت نبودن
-        run: flutter create --platforms=android .
-
+run: flutter create --platforms=android --project-name tic3_smart .
       - name: نصب پکیج‌های پروژه
         run: flutter pub get
 
