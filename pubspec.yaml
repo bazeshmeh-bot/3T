@@ -1,0 +1,32 @@
+name: tic3_smart
+description: "بازی خانه سه در سه - دوز هوشمند (Three Men's Morris)"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  shared_preferences: ^2.2.2
+
+  # ---------------------------------------------------------------
+  # مرحله بعد (نیاز به تنظیم پروژه فایربیس دارد - راهنما در README.md)
+  # این پکیج‌ها را بعد از راه‌اندازی Firebase از حالت کامنت خارج کنید:
+  # ---------------------------------------------------------------
+  # firebase_core: ^2.32.0
+  # cloud_firestore: ^4.17.5
+  # firebase_auth: ^4.20.0
+  # qr_flutter: ^4.1.0          # تولید QR کد اتاق بازی
+  # mobile_scanner: ^5.1.1      # اسکن QR کد
+  # nearby_connections: ^3.3.0  # بازی نزدیک (بلوتوث / وای‌فای مستقیم)
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
