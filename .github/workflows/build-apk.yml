@@ -27,8 +27,10 @@ jobs:
           channel: 'stable'
 
       - name: ساخت پوشه‌ی پلتفرم اندروید (android/) در صورت نبودن
-        run: flutter create --platforms=android --project-name tic3_smart .
 
+      - name: به‌روزرسانی نسخه‌ی Kotlin Gradle Plugin (رفع ناسازگاری با پکیج‌ها)
+        run: sed -i 's/org.jetbrains.kotlin.android" version "[^"]*"/org.jetbrains.kotlin.android" version "1.9.22"/' android/settings.gradle
+        
       - name: نصب پکیج‌های پروژه
         run: flutter pub get
 
