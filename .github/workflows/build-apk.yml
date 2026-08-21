@@ -1,11 +1,9 @@
 name: Build APK
 
-# هر بار که کد به شاخه‌ی main پوش (push) بشه، یا دستی از تب Actions اجرا بشه،
-# این workflow به‌صورت خودکار فایل APK می‌سازه.
 on:
   push:
     branches: [main, master]
-  workflow_dispatch: {}   # امکان اجرای دستی از تب Actions در گیت‌هاب
+  workflow_dispatch: {}
 
 jobs:
   build:
@@ -27,6 +25,9 @@ jobs:
         with:
           flutter-version: '3.24.0'
           channel: 'stable'
+
+      - name: ساخت پوشه‌ی پلتفرم اندروید (android/) در صورت نبودن
+        run: flutter create --platforms=android .
 
       - name: نصب پکیج‌های پروژه
         run: flutter pub get
