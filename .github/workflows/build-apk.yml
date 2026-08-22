@@ -35,12 +35,12 @@ jobs:
       - name: نصب پکیج‌های پروژه
         run: flutter pub get
 
-      - name: ساخت APK نهایی (release)
-        run: flutter build apk --release
+      - name: ساخت APK نهایی (release) - جدا برای هر معماری برای کاهش حجم
+        run: flutter build apk --release --split-per-abi
 
-      - name: آپلود فایل APK به‌عنوان خروجی این اجرا
+      - name: آپلود فایل‌های APK به‌عنوان خروجی این اجرا
         uses: actions/upload-artifact@v4
         with:
           name: tic3-smart-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/*.apk
           retention-days: 30
