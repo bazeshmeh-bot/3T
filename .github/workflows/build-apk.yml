@@ -32,6 +32,14 @@ jobs:
       - name: به‌روزرسانی نسخه‌ی Kotlin Gradle Plugin (رفع ناسازگاری با پکیج‌ها)
         run: sed -i 's/org.jetbrains.kotlin.android" version "[^"]*"/org.jetbrains.kotlin.android" version "1.9.22"/' android/settings.gradle
 
+      - name: افزودن پلاگین Google Services (برای اتصال به فایربیس)
+        run: |
+          sed -i '/id "org.jetbrains.kotlin.android" version/a\    id "com.google.gms.google-services" version "4.4.2" apply false' android/settings.gradle
+          sed -i '/id "org.jetbrains.kotlin.android"$/a\    id "com.google.gms.google-services"' android/app/build.gradle
+
+      - name: افزودن مجوز دوربین (برای اسکن QR)
+        run: sed -i '/<manifest/a\    <uses-permission android:name="android.permission.CAMERA" />' android/app/src/main/AndroidManifest.xml
+
       - name: نصب پکیج‌های پروژه
         run: flutter pub get
 
