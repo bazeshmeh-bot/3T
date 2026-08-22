@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../localization/app_strings.dart';
 import 'game_screen.dart';
 import 'profile_screen.dart';
+import 'online_lobby_screen.dart';
 import 'online_placeholder_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -56,7 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 }),
                 _menuButton(s.onlineMode, Icons.wifi, () {
                   Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => OnlinePlaceholderScreen(lang: lang)));
+                      MaterialPageRoute(builder: (_) => OnlineLobbyScreen(lang: lang)));
                 }),
                 _menuButton(s.nearbyMode, Icons.bluetooth, () {
                   Navigator.push(context,
