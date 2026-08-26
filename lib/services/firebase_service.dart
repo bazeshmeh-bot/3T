@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../firebase_options.dart';
 
 /// سرویس اتصال به فایربیس: راه‌اندازی اولیه + ورود ناشناس
 /// (نیازی به ثبت‌نام واقعی نیست، فقط برای داشتن یک شناسه‌ی یکتا برای هر بازیکن)
@@ -8,7 +9,7 @@ class FirebaseService {
 
   static Future<void> ensureInitialized() async {
     if (_initialized) return;
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     _initialized = true;
   }
 

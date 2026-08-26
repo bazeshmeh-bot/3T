@@ -5,7 +5,8 @@ import '../models/game_state.dart';
 /// ساختار سند:
 /// rooms/{roomId}
 ///   board: [null, 0, 1, ...]   (9 عضو)
-///   pieces: [{owner, cell, previousCell}, ...]
+///   pieces: [{owner, cell}, ...]
+///   lastMovedFromCell / lastMovedToCell: برای قانون منع بازگشت آخرین مهره
 ///   currentPlayer: 0|1
 ///   phase: 'placement' | 'movement' | 'gameOver'
 ///   winner: null | 0 | 1
@@ -72,12 +73,11 @@ class RoomRepository {
     });
   }
 
-  static Future<void> pushState(String roomId, GameState state) async {
-    await _rooms.doc(roomId).update({
+  /// تبدیل GameState به Map (برای Firestore و هم برای ارسال مستقیم در بازی نزدیک)
+  static Map<String, dynamic> stateToMap(GameState state) {
+    return {
       'board': state.board,
-      'pieces': state.pieces
-          .map((p) => {'owner': p.owner, 'cell': p.cell, 'previousCell': p.previousCell})
-          .toList(),
+      'pieces': state.pieces.map((p) => {'owner': p.owner, 'cell': p.cell}).toList(),
       'currentPlayer': state.currentPlayer,
       'phase': state.phase.name,
       'winner': state.winner,
@@ -86,7 +86,13 @@ class RoomRepository {
         '0': state.remainingToPlace[0],
         '1': state.remainingToPlace[1],
       },
-    });
+      'lastMovedFromCell': state.lastMovedFromCell,
+      'lastMovedToCell': state.lastMovedToCell,
+    };
+  }
+
+  static Future<void> pushState(String roomId, GameState state) async {
+    await _rooms.doc(roomId).update(stateToMap(state));
   }
 
   static Future<void> declareWinnerByDisconnect(String roomId, int winner) async {
@@ -106,11 +112,7 @@ class RoomRepository {
     final state = GameState();
     state.board = List<int?>.from(data['board'] ?? List<int?>.filled(9, null));
     state.pieces = (data['pieces'] as List<dynamic>? ?? [])
-        .map((p) => Piece(
-              owner: p['owner'] as int,
-              cell: p['cell'] as int,
-              previousCell: p['previousCell'] as int?,
-            ))
+        .map((p) => Piece(owner: p['owner'] as int, cell: p['cell'] as int))
         .toList();
     state.currentPlayer = data['currentPlayer'] as int? ?? 0;
     final phaseStr = data['phase'] as String? ?? 'placement';
@@ -123,6 +125,8 @@ class RoomRepository {
       0: remaining['0'] as int? ?? 0,
       1: remaining['1'] as int? ?? 0,
     };
+    state.lastMovedFromCell = data['lastMovedFromCell'] as int?;
+    state.lastMovedToCell = data['lastMovedToCell'] as int?;
     return state;
   }
 }
