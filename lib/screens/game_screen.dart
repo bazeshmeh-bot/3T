@@ -11,7 +11,13 @@ enum GameMode { singlePlayerVsAi, twoPlayerLocal }
 class GameScreen extends StatefulWidget {
   final AppLang lang;
   final GameMode mode;
-  const GameScreen({super.key, required this.lang, required this.mode});
+  final AiDifficulty difficulty;
+  const GameScreen({
+    super.key,
+    required this.lang,
+    required this.mode,
+    this.difficulty = AiDifficulty.medium,
+  });
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -68,10 +74,10 @@ class _GameScreenState extends State<GameScreen> {
   void _autoMove() {
     final player = state.currentPlayer;
     if (state.phase == GamePhase.placement) {
-      final cell = GameEngine.chooseAiPlacement(state, player);
+      final cell = GameEngine.chooseAiPlacement(state, player, difficulty: widget.difficulty);
       GameEngine.placePiece(state, cell);
     } else if (state.phase == GamePhase.movement) {
-      final choice = GameEngine.chooseAiMove(state, player);
+      final choice = GameEngine.chooseAiMove(state, player, difficulty: widget.difficulty);
       if (choice != null) {
         GameEngine.movePiece(state, choice.key, choice.value);
       }

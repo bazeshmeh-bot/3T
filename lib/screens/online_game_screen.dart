@@ -5,6 +5,7 @@ import '../localization/app_strings.dart';
 import '../logic/game_engine.dart';
 import '../models/game_state.dart';
 import '../services/room_repository.dart';
+import '../services/presence_repository.dart';
 import '../widgets/board_widget.dart';
 
 class OnlineGameScreen extends StatefulWidget {
@@ -23,6 +24,7 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   Timer? _disconnectCheckTimer;
   int? _selectedCell;
   bool _endedByDisconnect = false;
+  bool _resultRecorded = false;
 
   static const heartbeatEvery = Duration(seconds: 5);
   static const disconnectThreshold = Duration(seconds: 20);
@@ -31,12 +33,14 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
   void initState() {
     super.initState();
     s = S(widget.lang);
+    PresenceRepository.setInGame(widget.myUid, true);
   }
 
   @override
   void dispose() {
     _heartbeatTimer?.cancel();
     _disconnectCheckTimer?.cancel();
+    PresenceRepository.setInGame(widget.myUid, false);
     super.dispose();
   }
 
@@ -151,6 +155,9 @@ class _OnlineGameScreenState extends State<OnlineGameScreen> {
             _startHeartbeat(myIndex!);
             if (state.phase != GamePhase.gameOver) {
               _startDisconnectWatch(myIndex!, data);
+            } else if (!_resultRecorded) {
+              _resultRecorded = true;
+              PresenceRepository.recordResult(widget.myUid, won: state.winner == myIndex);
             }
 
             final myName = players['$myIndex']?['name'] ?? '';

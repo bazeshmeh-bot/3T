@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../localization/app_strings.dart';
 import 'game_screen.dart';
 import 'profile_screen.dart';
 import 'online_lobby_screen.dart';
-import 'online_placeholder_screen.dart';
+import 'nearby_lobby_screen.dart';
+import 'difficulty_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,6 +15,18 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   AppLang lang = AppLang.fa;
+  String? _playerName;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadName();
+  }
+
+  Future<void> _loadName() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() => _playerName = prefs.getString('player_name'));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,13 +52,31 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Icon(Icons.grid_3x3, size: 72, color: Colors.blue),
-                const SizedBox(height: 24),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () async {
+                    await Navigator.push(
+                        context, MaterialPageRoute(builder: (_) => ProfileScreen(lang: lang)));
+                    _loadName();
+                  },
+                  child: Text(
+                    (_playerName != null && _playerName!.trim().isNotEmpty)
+                        ? (s.isFa ? '${_playerName!} 👋' : 'Hi, ${_playerName!} 👋')
+                        : (s.isFa ? 'برای تنظیم نام ضربه بزنید' : 'Tap to set your name'),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: (_playerName != null && _playerName!.trim().isNotEmpty)
+                          ? Colors.blue.shade700
+                          : Colors.grey,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 _menuButton(s.singlePlayer, Icons.smartphone, () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => GameScreen(lang: lang, mode: GameMode.singlePlayerVsAi),
-                    ),
+                    MaterialPageRoute(builder: (_) => DifficultyScreen(lang: lang)),
                   );
                 }),
                 _menuButton(s.twoPlayerLocal, Icons.people, () {
@@ -61,11 +93,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 }),
                 _menuButton(s.nearbyMode, Icons.bluetooth, () {
                   Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => OnlinePlaceholderScreen(lang: lang)));
+                      MaterialPageRoute(builder: (_) => NearbyLobbyScreen(lang: lang)));
                 }),
-                _menuButton(s.profile, Icons.person, () {
-                  Navigator.push(
+                _menuButton(s.profile, Icons.person, () async {
+                  await Navigator.push(
                       context, MaterialPageRoute(builder: (_) => ProfileScreen(lang: lang)));
+                  _loadName();
                 }),
               ],
             ),
