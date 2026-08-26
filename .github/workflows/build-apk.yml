@@ -32,13 +32,24 @@ jobs:
       - name: به‌روزرسانی نسخه‌ی Kotlin Gradle Plugin (رفع ناسازگاری با پکیج‌ها)
         run: sed -i 's/org.jetbrains.kotlin.android" version "[^"]*"/org.jetbrains.kotlin.android" version "1.9.22"/' android/settings.gradle
 
-      - name: افزودن پلاگین Google Services (برای اتصال به فایربیس)
-        run: |
-          sed -i '/id "org.jetbrains.kotlin.android" version/a\    id "com.google.gms.google-services" version "4.4.2" apply false' android/settings.gradle
-          sed -i '/id "org.jetbrains.kotlin.android"$/a\    id "com.google.gms.google-services"' android/app/build.gradle
-
       - name: افزودن مجوز دوربین (برای اسکن QR)
         run: sed -i '/<manifest/a\    <uses-permission android:name="android.permission.CAMERA" />' android/app/src/main/AndroidManifest.xml
+
+      - name: افزودن مجوزهای بلوتوث/وای‌فای/مکان (برای بازی نزدیک)
+        run: |
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />' android/app/src/main/AndroidManifest.xml
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />' android/app/src/main/AndroidManifest.xml
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" />' android/app/src/main/AndroidManifest.xml
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />' android/app/src/main/AndroidManifest.xml
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />' android/app/src/main/AndroidManifest.xml
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />' android/app/src/main/AndroidManifest.xml
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />' android/app/src/main/AndroidManifest.xml
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />' android/app/src/main/AndroidManifest.xml
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />' android/app/src/main/AndroidManifest.xml
+          sed -i '/<manifest/a\    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" android:usesPermissionFlags="neverForLocation" />' android/app/src/main/AndroidManifest.xml
+
+      - name: فعال‌سازی کوچک‌سازی کد (R8) برای کاهش بیشتر حجم
+        run: sed -i '/signingConfig = signingConfigs.debug/a\            minifyEnabled true\n            shrinkResources true\n            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt")' android/app/build.gradle
 
       - name: نصب پکیج‌های پروژه
         run: flutter pub get
