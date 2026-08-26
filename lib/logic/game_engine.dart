@@ -1,6 +1,9 @@
 import 'dart:math';
 import '../models/game_state.dart';
 
+/// سطح سختی هوش مصنوعی
+enum AiDifficulty { easy, medium, hard }
+
 /// نتیجه‌ی یک تلاش برای انجام حرکت
 class MoveResult {
   final bool success;
@@ -79,10 +82,11 @@ class GameEngine {
 
   static List<int> legalDestinations(GameState state, Piece piece) {
     final neighbors = adjacency[piece.cell] ?? [];
+    final isLastMovedPiece = piece.cell == state.lastMovedToCell;
     return neighbors.where((c) {
       if (state.board[c] != null) return false; // باید خالی باشد
-      if (piece.previousCell != null && c == piece.previousCell) {
-        return false; // ممنوعیت بازگشت به خانه‌ی مرحله‌ی قبل
+      if (isLastMovedPiece && c == state.lastMovedFromCell) {
+        return false; // فقط آخرین مهره‌ی جابه‌جاشده نمی‌تواند به خانه‌ی قبلی‌اش برگردد
       }
       return true;
     }).toList();
@@ -94,15 +98,17 @@ class GameEngine {
     final neighbors = adjacency[piece.cell] ?? [];
     if (!neighbors.contains(destination)) return MoveResult.fail('not_adjacent');
 
-    if (piece.previousCell != null && destination == piece.previousCell) {
+    final isLastMovedPiece = piece.cell == state.lastMovedToCell;
+    if (isLastMovedPiece && destination == state.lastMovedFromCell) {
       return MoveResult.fail('back_move');
     }
 
     final oldCell = piece.cell;
     state.board[oldCell] = null;
     state.board[destination] = piece.owner;
-    piece.previousCell = oldCell;
     piece.cell = destination;
+    state.lastMovedFromCell = oldCell;
+    state.lastMovedToCell = destination;
 
     final winner = checkWinner(state.board);
     if (winner != null) {
@@ -115,15 +121,20 @@ class GameEngine {
     return MoveResult.ok();
   }
 
-  // ---------------- هوش مصنوعی ساده (اکتشافی) ----------------
-  // در فاز چیدن: برد فوری -> بلاک حریف -> مرکز -> گوشه -> تصادفی
-  // در فاز جابه‌جایی: برد فوری -> بلاک حریف -> حرکت به سمت مرکز -> تصادفی مجاز
+  // ---------------- هوش مصنوعی با سه سطح سختی ----------------
+  // آسان: کاملاً تصادفی (تقریباً همیشه می‌بازد)
+  // متوسط: برد فوری -> بلاک حریف -> مرکز -> گوشه -> تصادفی
+  // سخت: متوسط + تشخیص «دوشاخه» (Fork) - هم برای حمله هم برای دفاع
 
   static final _rng = Random();
 
-  static int chooseAiPlacement(GameState state, int aiPlayer) {
+  static int chooseAiPlacement(GameState state, int aiPlayer, {AiDifficulty difficulty = AiDifficulty.medium}) {
     final opponent = aiPlayer == 0 ? 1 : 0;
     final empties = emptyCells(state.board);
+
+    if (difficulty == AiDifficulty.easy) {
+      return empties[_rng.nextInt(empties.length)];
+    }
 
     // ۱. اگر می‌تواند فوراً ببرد
     for (final cell in empties) {
@@ -135,37 +146,69 @@ class GameEngine {
       final trial = List<int?>.from(state.board)..[cell] = opponent;
       if (checkWinner(trial) == opponent) return cell;
     }
-    // ۳. ترجیح مرکز
+
+    if (difficulty == AiDifficulty.hard) {
+      // ۳. اگر می‌تواند برای خودش «دوشاخه» بسازد (دو تهدید هم‌زمان)
+      final forkCell = _findForkCell(state.board, empties, aiPlayer);
+      if (forkCell != null) return forkCell;
+      // ۴. اگر حریف می‌تواند دوشاخه بسازد، همان خانه را اشغال کن
+      final oppForkCell = _findForkCell(state.board, empties, opponent);
+      if (oppForkCell != null) return oppForkCell;
+    }
+
+    // ۵. ترجیح مرکز
     if (empties.contains(4)) return 4;
-    // ۴. ترجیح گوشه‌ها
+    // ۶. ترجیح گوشه‌ها
     final corners = [0, 2, 6, 8].where(empties.contains).toList();
     if (corners.isNotEmpty) return corners[_rng.nextInt(corners.length)];
-    // ۵. تصادفی
+    // ۷. تصادفی
     return empties[_rng.nextInt(empties.length)];
   }
 
+  /// خانه‌ای که اگر بازیکن آنجا بگذارد، بیش از یک خط بازِ دو-در-سه ایجاد می‌کند (دوشاخه)
+  static int? _findForkCell(List<int?> board, List<int> empties, int player) {
+    for (final cell in empties) {
+      final trial = List<int?>.from(board)..[cell] = player;
+      int winningLines = 0;
+      for (final line in lines) {
+        final vals = line.map((i) => trial[i]).toList();
+        if (vals.where((v) => v == player).length == 2 && vals.contains(null)) {
+          winningLines++;
+        }
+      }
+      if (winningLines >= 2) return cell;
+    }
+    return null;
+  }
+
   /// برمی‌گرداند: (piece, destinationCell) بهترین حرکت برای فاز جابه‌جایی
-  static MapEntry<Piece, int>? chooseAiMove(GameState state, int aiPlayer) {
+  static MapEntry<Piece, int>? chooseAiMove(GameState state, int aiPlayer,
+      {AiDifficulty difficulty = AiDifficulty.medium}) {
     final opponent = aiPlayer == 0 ? 1 : 0;
     final myPieces = state.piecesOf(aiPlayer);
+
+    final candidates = <MapEntry<Piece, int>>[];
+    for (final piece in myPieces) {
+      for (final dest in legalDestinations(state, piece)) {
+        candidates.add(MapEntry(piece, dest));
+      }
+    }
+    if (candidates.isEmpty) return null;
+
+    if (difficulty == AiDifficulty.easy) {
+      return candidates[_rng.nextInt(candidates.length)];
+    }
 
     MapEntry<Piece, int>? winningMove;
     MapEntry<Piece, int>? blockingMove;
     MapEntry<Piece, int>? centerMove;
-    final candidates = <MapEntry<Piece, int>>[];
 
-    for (final piece in myPieces) {
-      for (final dest in legalDestinations(state, piece)) {
-        candidates.add(MapEntry(piece, dest));
-
-        final trialBoard = List<int?>.from(state.board);
-        trialBoard[piece.cell] = null;
-        trialBoard[dest] = aiPlayer;
-        if (checkWinner(trialBoard) == aiPlayer) {
-          winningMove = MapEntry(piece, dest);
-        }
-        if (dest == 4) centerMove = MapEntry(piece, dest);
-      }
+    for (final c in candidates) {
+      final trialBoard = List<int?>.from(state.board);
+      trialBoard[c.key.cell] = null;
+      trialBoard[c.value] = aiPlayer;
+      if (checkWinner(trialBoard) == aiPlayer) winningMove = c;
+      if (c.value == 4) centerMove = c;
     }
     if (winningMove != null) return winningMove;
 
@@ -176,15 +219,31 @@ class GameEngine {
         trialBoard[oppPiece.cell] = null;
         trialBoard[oppDest] = opponent;
         if (checkWinner(trialBoard) == opponent) {
-          // آیا ما می‌توانیم به oppDest برویم؟
           final blocker = candidates.where((c) => c.value == oppDest).toList();
           if (blocker.isNotEmpty) blockingMove = blocker.first;
         }
       }
     }
     if (blockingMove != null) return blockingMove;
+
+    if (difficulty == AiDifficulty.hard) {
+      // ترجیح حرکتی که باعث دوشاخه (دو تهدید هم‌زمان) برای خودمان شود
+      for (final c in candidates) {
+        final trialBoard = List<int?>.from(state.board);
+        trialBoard[c.key.cell] = null;
+        trialBoard[c.value] = aiPlayer;
+        int winningLines = 0;
+        for (final line in lines) {
+          final vals = line.map((i) => trialBoard[i]).toList();
+          if (vals.where((v) => v == aiPlayer).length == 2 && vals.contains(null)) {
+            winningLines++;
+          }
+        }
+        if (winningLines >= 2) return c;
+      }
+    }
+
     if (centerMove != null) return centerMove;
-    if (candidates.isEmpty) return null;
     return candidates[_rng.nextInt(candidates.length)];
   }
 }
