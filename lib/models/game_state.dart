@@ -5,9 +5,8 @@ enum GamePhase { placement, movement, gameOver }
 class Piece {
   final int owner; // 0 یا 1
   int cell; // خانه‌ی فعلی (0..8)
-  int? previousCell; // خانه‌ای که مرحله‌ی قبل در آن بود (برای قانون منع بازگشت)
 
-  Piece({required this.owner, required this.cell, this.previousCell});
+  Piece({required this.owner, required this.cell});
 }
 
 class GameState {
@@ -22,6 +21,12 @@ class GameState {
 
   // تعداد مهره‌های باقی‌مانده برای چیدن، هر بازیکن با ۳ مهره شروع می‌کند
   Map<int, int> remainingToPlace = {0: 3, 1: 3};
+
+  // فقط برای «آخرین مهره‌ای که در کل بازی جابه‌جا شده» - نه هر مهره جداگانه.
+  // اگر مهره‌ای که الان در lastMovedToCell نشسته دوباره انتخاب شود، نمی‌تواند
+  // به lastMovedFromCell برگردد. با هر حرکت جدید، این محدودیت جابه‌جا می‌شود.
+  int? lastMovedFromCell;
+  int? lastMovedToCell;
 
   int scoreP0 = 0;
   int scoreP1 = 0;
@@ -49,5 +54,7 @@ class GameState {
     winner = null;
     isDraw = false;
     remainingToPlace = {0: 3, 1: 3};
+    lastMovedFromCell = null;
+    lastMovedToCell = null;
   }
 }
